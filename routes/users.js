@@ -3,6 +3,11 @@ const router = express.Router();
 const User = require('../models/user');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
+const multer = require('multer');
+const mongoose = require('mongoose');
+
+const storage = multer.diskStorage({});
+const uploads = multer({ storage });
 
 router.get('/', async (req,res) => {
     const userList = await User.find().select('-passwordHash');
@@ -21,7 +26,7 @@ router.get('/:id', async (req, res) => {
     res.status(200).send(user);
 });
 
-router.post('/', async (req, res) => {
+router.post('/register', async (req, res) => {
     let user = new User({
         name: req.body.name,
         email: req.body.email,
@@ -81,6 +86,21 @@ router.get('/get/count', async (req, res) => {
     }
     res.send({ userCount: userCount});
 });
+
+router.put('/upload-profile/:id', uploads.single("avatar"), async(req, res ) => {
+    const { id: _id} = req.params;
+    const user = req.body;
+    if(!mongoose.isValidObjectId(_id)){
+        res.status(400).send('Invalid user Id')
+    }
+    const updatedUser = await User.findByIdAndUpdate(
+        req.params.id,
+        { ...user, _id },
+        { new: true }
+        );
+    res.status(200).send(updatedUser);
+    console.log(updatedUser);
+})  
 
 
 module.exports= router;

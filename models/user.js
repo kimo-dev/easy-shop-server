@@ -11,6 +11,7 @@ const userSchema = mongoose.Schema({
   zip: { type: String, default: '' },
   city: { type: String, default: '' },
   country: { type: String, default: '' },
+  avatar: { type: String, default: '' },
 });
 
 userSchema.virtual('id').get(function () {

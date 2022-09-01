@@ -4,6 +4,7 @@ const Product = require('../models/product');
 const mongoose = require('mongoose');
 const multer = require('multer');
 const router = express.Router();
+const cloudinary = require('../utils/cloudinary');
 
 const FILE_TYPE_MAP = {
     'image/png': 'png',
@@ -35,7 +36,7 @@ router.get('/', async (req, res) => {
     if(req.query.categories){
         const filter = {category: req.query.categories.split(',')};
     }
-    const ProductList = await Product.find(filter);
+    const ProductList = await Product.find(filter).populate('category');
 
     if(!ProductList){
         res.status(500).json({success: false});
@@ -67,6 +68,7 @@ router.post('/', uploadOptions.single('image'), async (req, res) => {
         description: req.body.description,
         richDescription: req.body.richDescription,
         image: `${basePath}/${fileName}`,
+        // image: req.file.path,
         brand: req.body.brand,
         price: req.body.price,
         category: req.body.category,
@@ -80,6 +82,10 @@ router.post('/', uploadOptions.single('image'), async (req, res) => {
         return res.status(500).send('The product cannot be created');
     }
     return res.status(200).send(product);
+    // console.log(req.body);
+    // console.log(req.file);
+
+  
 });
 
 router.put('/:id', async (req, res) => {
