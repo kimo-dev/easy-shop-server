@@ -12,23 +12,32 @@ const FILE_TYPE_MAP = {
     'image/jpg': 'jpg',
 }
 
-const storage = multer.diskStorage({
-    destination: function (req, file, cb) {
-        const isValid = FILE_TYPE_MAP[file.mimetype];
-        let uploadError = new Error('invalid image type');
-        if(isValid){
-            uploadError = null;
-        }
-      cb(uploadError, 'public/uploads')
-    },
-    filename: function (req, file, cb) {
-      const fileName = file.originalname.split(' ').join('-');
-      const extension = FILE_TYPE_MAP[file.mimetype]
-      cb(null, `${fileName}-${Date.now()}.${extension}`)
-    }
-  })
+// const storage = multer.diskStorage({
+//     destination: function (req, file, cb) {
+//         const isValid = FILE_TYPE_MAP[file.mimetype];
+//         let uploadError = new Error('invalid image type');
+//         if(isValid){
+//             uploadError = null;
+//         }
+//       cb(uploadError, 'public/uploads')
+//     },
+//     filename: function (req, file, cb) {
+//       const fileName = file.originalname.split(' ').join('-');
+//       const extension = FILE_TYPE_MAP[file.mimetype]
+//       cb(null, `${fileName}-${Date.now()}.${extension}`)
+//     }
+//   })
+const storage = multer.diskStorage({});
+
+const fileFilter = (req, file, cb) => {
+  if (file.mimetype.startsWith('image')) {
+    cb(null, true);
+  } else {
+    cb('invalid image file!', false);
+  }
+};
   
-  const uploadOptions = multer({ storage: storage })
+  const uploadOptions = multer({ storage, fileFilter })
 
 
 router.get('/', async (req, res) => {
@@ -57,33 +66,67 @@ router.post('/', uploadOptions.single('image'), async (req, res) => {
     if(!category) {
         return res.status(400).send('Invalid Category');
     }
-    const file = req.file;
-    if(!file) {
-        return res.status(400).send('No image in the request');
-    }
-    const fileName = req.file.filename
-    const basePath = `${req.protocol}://${req.get('host')}/public/uploads/`;
-    let product = new Product({
-        name: req.body.name,
-        description: req.body.description,
-        richDescription: req.body.richDescription,
-        image: `${basePath}/${fileName}`,
-        // image: req.file.path,
-        brand: req.body.brand,
-        price: req.body.price,
-        category: req.body.category,
-        countInStock: req.body.countInStock,
-        rating: req.body.rating,
-        numReviews: req.body.numReviews,
-        isFeatured: req.body.isFeatured,
-    })
-    product = await product.save();
-    if(!product) {
-        return res.status(500).send('The product cannot be created');
-    }
-    return res.status(200).send(product);
-    // console.log(req.body);
+    // const file = req.file;
+    // if(!file) {
+    //     return res.status(400).send('No image in the request');
+    // }
+    // const fileName = req.file.filename
+    // const basePath = `${req.protocol}://${req.get('host')}/public/uploads/`;
+    // let product = new Product({
+    //     name: req.body.name,
+    //     description: req.body.description,
+    //     richDescription: req.body.richDescription,
+    //     image: `${basePath}/${fileName}`,
+    //     // image: req.file.path,
+    //     brand: req.body.brand,
+    //     price: req.body.price,
+    //     category: req.body.category,
+    //     countInStock: req.body.countInStock,
+    //     rating: req.body.rating,
+    //     numReviews: req.body.numReviews,
+    //     isFeatured: req.body.isFeatured,
+    // })
+    // product = await product.save();
+    // if(!product) {
+    //     return res.status(500).send('The product cannot be created');
+    // }
+    // return res.status(200).send(product);
+    console.log(req.body);
     // console.log(req.file);
+
+    try {
+        const result = await cloudinary.uploader.upload(req.file.path, {
+            public_id: `${123}_profile`,
+            width: 500,
+            height: 500,
+            crop: 'fill',
+          });
+          let product = new Product({
+            name: req.body.name,
+            description: req.body.description,
+            richDescription: req.body.richDescription,
+            // image: `${basePath}/${fileName}`,
+            image: result.url,
+            brand: req.body.brand,
+            price: req.body.price,
+            category: req.body.category,
+            countInStock: req.body.countInStock,
+            rating: req.body.rating,
+            numReviews: req.body.numReviews,
+            isFeatured: req.body.isFeatured,
+        })
+        product = await product.save();
+        if(!product) {
+            return res.status(500).send('The product cannot be created');
+        }
+        return res.status(200).send(product);
+        
+    } catch(error) {
+        res.status(500).json({
+            success: false, message: 'server error, try after some time' 
+        });
+        console.log(error);
+    }
 
   
 });
